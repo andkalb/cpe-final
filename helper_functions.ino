@@ -3,12 +3,8 @@
 // helper functions defined for the
 // convenience of the overall program.
 
-void init(unsigned int* port, bool output_nInput)
-{
-    write(port, 7, output_nInput);
-}
 
-void write(unsigned int* port, unsigned int pinNumber, bool high_nLow)
+void write(unsigned char* port, unsigned int pinNumber, bool high_nLow)
 {
     if(high_nLow)
     {
@@ -20,7 +16,7 @@ void write(unsigned int* port, unsigned int pinNumber, bool high_nLow)
     }
 }
 
-bool read(unsigned int* port, unsigned int pinNumber)
+bool read(unsigned char* port, unsigned int pinNumber)
 {
     return !(*port & ~(0x01 << pinNumber) == 0b00000000);
 }
