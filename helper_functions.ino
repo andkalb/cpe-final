@@ -5,7 +5,7 @@
 
 void init(unsigned int* port, bool output_nInput)
 {
-    write(port, 8, output_nInput);
+    write(port, 7, output_nInput);
 }
 
 void write(unsigned int* port, unsigned int pinNumber, bool high_nLow)
@@ -22,5 +22,5 @@ void write(unsigned int* port, unsigned int pinNumber, bool high_nLow)
 
 bool read(unsigned int* port, unsigned int pinNumber)
 {
-    return !(*port & ~(0x01 << pinNumber) == 0x00000000);
+    return !(*port & ~(0x01 << pinNumber) == 0b00000000);
 }
