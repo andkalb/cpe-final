@@ -12,6 +12,22 @@
 //
 //
 
+//
+// GLOBAL VARIABLES
+//
+enum State
+{
+    idle,
+    error,
+    disabled,
+    running
+};
+
+State state = idle;
+//
+//
+//
+
 
 //
 // SETUP CODE
@@ -30,7 +46,22 @@ void setup()
 //
 void loop() 
 {
-
+    if (state == idle)
+    {
+        idle_process();
+    }
+    else if (state == error)
+    {
+        error_process();
+    }
+    else if (state == disabled)
+    {
+        disabled_process();
+    }
+    else if (state == running)
+    {
+        running_process();
+    }
 }
 //
 //
