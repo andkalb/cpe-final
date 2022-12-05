@@ -12,6 +12,7 @@
 //
 //
 
+
 //
 // GLOBAL VARIABLES
 //
@@ -66,3 +67,31 @@ void loop()
 //
 //
 //
+
+
+//
+// STATE FUNCTIONS
+//
+void disabled_process()
+{
+    
+}
+
+void idle_process()
+{
+
+}
+
+void running_process()
+{
+
+}
+
+void error_process()
+{
+    
+}
+//
+//
+//
+
