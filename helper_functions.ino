@@ -18,5 +18,5 @@ void write(unsigned char* port, unsigned int pinNumber, bool high_nLow)
 
 bool read(unsigned char* port, unsigned int pinNumber)
 {
-    return !(*port & ~(0x01 << pinNumber) == 0b00000000);
+  return !((*port & (0x01 << pinNumber)) == 0x00);
 }
