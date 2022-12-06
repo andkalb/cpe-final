@@ -2,7 +2,7 @@
 // CPE 301 Final Project - Fall 2022
 // Written by Andrew Kalb and Preston Peterson
 //
-
+#include "helper_functions.ino"
 
 //
 // ADDRESSES/PORT SETUP
@@ -45,7 +45,8 @@ State state = idle;
 //
 void setup() 
 {
-    
+    write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
+    write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
 }
 //
 //
@@ -89,19 +90,35 @@ void disabled_process()
 
 void idle_process()
 {
-
+    HandleEventButtons();
 }
 
 void running_process()
 {
-
+    HandleEventButtons();
 }
 
 void error_process()
 {
-    
+    HandleEventButtons();
 }
 //
 //
 //
 
+void HandleEventButtons()
+{
+    bool pb7 = read(port_b, 7);
+    bool pb6 = read(port_b, 6);
+    if(!(pb7 && pb6))
+    {
+        if(pb7)
+        {
+            // adjust vent 1 way (stepper motor)
+        }
+        else if (pb6)
+        {
+            // adjust vent the other way (stepper motor)
+        }
+    }
+}
