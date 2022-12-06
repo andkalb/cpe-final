@@ -7,7 +7,17 @@
 //
 // ADDRESSES/PORT SETUP
 //
+volatile unsigned char* port_b = (unsigned char*) 0x25; 
+volatile unsigned char* ddr_b  = (unsigned char*) 0x24; 
+volatile unsigned char* pin_b  = (unsigned char*) 0x23;
 
+volatile unsigned char* port_f = (unsigned char*) 0x31; 
+volatile unsigned char* ddr_f  = (unsigned char*) 0x30; 
+volatile unsigned char* pin_f  = (unsigned char*) 0x2F;
+
+volatile unsigned char* port_k = (unsigned char*) 0x108; 
+volatile unsigned char* ddr_k  = (unsigned char*) 0x107; 
+volatile unsigned char* pin_k  = (unsigned char*) 0x106;
 //
 //
 //
