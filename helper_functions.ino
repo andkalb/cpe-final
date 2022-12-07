@@ -1,5 +1,5 @@
 // helper_functions.ino
-// This file contains various
+// This file contains read/write
 // helper functions defined for the
 // convenience of the overall program.
 
