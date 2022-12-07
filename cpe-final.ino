@@ -39,8 +39,12 @@ enum State
     running
 };
 
-State state = idle;
+State state = disabled;
+
 bool fanOn = false;
+
+unsigned int waterThreshold = 100;
+unsigned int errorWaterThreshold = 50;
 //
 //
 //
@@ -71,11 +75,11 @@ void loop()
     unsigned int waterLevel = ADCRead(0);
     if (state == idle)
     {
-        IdleProcess();
+        IdleProcess(waterLevel);
     }
     else if (state == error)
     {
-        ErrorProcess();
+        ErrorProcess(waterLevel);
     }
     else if (state == disabled)
     {
@@ -83,7 +87,7 @@ void loop()
     }
     else if (state == running)
     {
-        RunningProcess();
+        RunningProcess(waterLevel);
     }
 }
 //
@@ -94,24 +98,42 @@ void loop()
 //
 // STATE FUNCTIONS
 //
-void DisabledProcess(unsigned int waterlevel)
+void DisabledProcess()
 {
-    
+    // read start button,
 }
 
-void IdleProcess()
+void IdleProcess(unsigned int waterLevel)
 {
     HandleVentButtons();
+
 }
 
-void RunningProcess()
+void RunningProcess(unsigned int waterLevel)
 {
     HandleVentButtons();
+    if(waterLevel < errorWaterThreshold)
+    {
+        state = error;
+        // turn off all LEDS
+        // turn on red led
+        // error message on LCD
+        // motor off
+
+    }
+
 }
 
-void ErrorProcess()
+void ErrorProcess(unsigned int waterLevel)
 {
     HandleVentButtons();
+    //if(read()) read reset button
+    //{
+    if(waterLevel > errorWaterThreshold)
+    {
+
+    }
+    // }
 }
 //
 //
