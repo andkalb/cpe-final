@@ -3,7 +3,7 @@
 // helper functions defined for the
 // convenience of the overall program.
 
-
+// TODO: do these need to be volatile?
 void write(volatile unsigned char* port, unsigned int pinNumber, bool high_nLow)
 {
     if(high_nLow)
