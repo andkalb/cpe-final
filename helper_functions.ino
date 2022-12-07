@@ -4,7 +4,7 @@
 // convenience of the overall program.
 
 // TODO: do these need to be volatile?
-void write(volatile unsigned char* port, unsigned int pinNumber, bool high_nLow)
+void Write(volatile unsigned char* port, unsigned int pinNumber, bool high_nLow)
 {
     if(high_nLow)
     {
@@ -16,7 +16,7 @@ void write(volatile unsigned char* port, unsigned int pinNumber, bool high_nLow)
     }
 }
 
-bool read(volatile unsigned char* port, unsigned int pinNumber)
+bool Read(volatile unsigned char* port, unsigned int pinNumber)
 {
   return !((*port & (0x01 << pinNumber)) == 0x00);
 }
