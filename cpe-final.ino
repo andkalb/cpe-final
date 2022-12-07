@@ -2,7 +2,7 @@
 // CPE 301 Final Project - Fall 2022
 // Written by Andrew Kalb and Preston Peterson
 //
-#include "helper_functions.ino"
+#include "helper_functions.ino" // TODO: MIGHT BE UNNECESSARY?
 
 //
 // ADDRESSES/PORT SETUP
@@ -35,6 +35,7 @@ enum State
 };
 
 State state = idle;
+bool fanOn = false;
 //
 //
 //
@@ -47,6 +48,9 @@ void setup()
 {
     write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
     write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
+    write(ddr_f, 6, 0); // PF6 is the water sensor signal.     INPUT
+    write(ddr_k, 6, 0); // PK6 is the humidity sensor signal.  INPUT
+    
 }
 //
 //
@@ -90,23 +94,27 @@ void disabled_process()
 
 void idle_process()
 {
-    HandleEventButtons();
+    HandleVentButtons();
 }
 
 void running_process()
 {
-    HandleEventButtons();
+    HandleVentButtons();
 }
 
 void error_process()
 {
-    HandleEventButtons();
+    HandleVentButtons();
 }
 //
 //
 //
 
-void HandleEventButtons()
+
+//
+// Additional Functions
+//
+void HandleVentButtons()
 {
     bool pb7 = read(port_b, 7);
     bool pb6 = read(port_b, 6);
@@ -122,3 +130,17 @@ void HandleEventButtons()
         }
     }
 }
+
+void CheckAndOutputLCD()
+{
+
+}
+
+void SetFanOn(bool on)
+{
+    // Break/Restore connection to fan
+    fanOn = on;
+}
+//
+//
+//
