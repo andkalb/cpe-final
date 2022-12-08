@@ -55,7 +55,6 @@ State state = disabled;
 bool fanOn = false;
 
 unsigned int waterThreshold = 100;       // DETERMINE THESE CONSTANTS
-unsigned int errorWaterThreshold = 50;   // " " " " " " " " " " " "
 unsigned int temperatureThreshold = 75;  // " " " " " " " " " " " "
 //
 //
@@ -120,6 +119,8 @@ void loop()
 void DisabledProcess()
 {
     // read start button, switch to running process, USE ISR
+    // turn off yellow led when ISR hits
+    // goto idle state when ISR hits, turn on green led
 }
 
 void IdleProcess(unsigned int waterLevel)
@@ -134,10 +135,10 @@ void IdleProcess(unsigned int waterLevel)
 void RunningProcess(unsigned int waterLevel)
 {
     HandleVentButtons();
-    if(waterLevel < errorWaterThreshold)
+    if(waterLevel <= errorWaterThreshold)
     {
         state = error;
-        // turn off all LEDS
+        // turn off blue led
         // turn on red led
         // error message on LCD
         // motor off
@@ -151,9 +152,11 @@ void ErrorProcess(unsigned int waterLevel)
     HandleVentButtons();
     //if(read()) read reset button
     //{
-    if(waterLevel > errorWaterThreshold)
+    if(waterLevel > waterThreshold)
     {
-
+        state = idle;
+        // red LED off
+        // green LED on
     }
     // }
 }
