@@ -18,6 +18,10 @@ volatile unsigned char* port_f = (unsigned char*) 0x31;
 volatile unsigned char* ddr_f  = (unsigned char*) 0x30; 
 volatile unsigned char* pin_f  = (unsigned char*) 0x2F;
 
+volatile unsigned char* port_j = (unsigned char*) 0x105; 
+volatile unsigned char* ddr_j  = (unsigned char*) 0x104; 
+volatile unsigned char* pin_j  = (unsigned char*) 0x103;
+
 volatile unsigned char* port_k = (unsigned char*) 0x108; 
 volatile unsigned char* ddr_k  = (unsigned char*) 0x107; 
 volatile unsigned char* pin_k  = (unsigned char*) 0x106;
@@ -26,6 +30,9 @@ volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
 volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
+
+volatile unsigned char* my_PCMSK1 = (unsigned char*) 0x6C; 
+volatile unsigned char* my_PCICR  = (unsigned char*) 0x68; 
 //
 //
 //
@@ -41,6 +48,7 @@ const int stepsPerRevolution = 2048;
 Stepper stepper = Stepper(stepsPerRevolution, 2, 4, 3, 5); // numbers are digital ports
 
 dht11 dht; // Temp Sensor
+unsigned int waterLevel; // variable for water sensor
 
 enum State
 {
@@ -53,9 +61,10 @@ enum State
 State state = disabled;
 
 bool fanOn = false;
+bool startButtonPressed = false;
 
-unsigned int waterThreshold = 100;       // DETERMINE THESE CONSTANTS
-unsigned int temperatureThreshold = 75;  // " " " " " " " " " " " "
+unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
+unsigned int temperatureThreshold = 20;  // " " " " " " " " " " " " Celsius
 //
 //
 //
@@ -66,10 +75,15 @@ unsigned int temperatureThreshold = 75;  // " " " " " " " " " " " "
 //
 void setup() 
 {
+    Write(ddr_j, 1, 0); // PJ1 is start button                 INPUT
+    Write(port_j, 1, 1); // PJ1 needs pullup resistor enabled
+    Write(my_PCMSK1, 2, 1); // PCMSK1 14 set
+    Write(my_PCICR, 1, 1); // PCIE1 set
+
     Write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
     Write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
-    //Write(ddr_f, 6, 0); // PF6 is the water sensor signal.     INPUT
-    //Write(ddr_k, 6, 0); // PK6 is the humidity sensor signal.  INPUT  TODO: unnecessary, use 0 channel adc
+    //Write(ddr_f, 6, 0); // PF6 is the water sensor signal.     INPUT TODO: unnecessary, use adc channel num 0
+    //Write(ddr_k, 6, 0); // PK6 is the humidity sensor signal.  INPUT
     
    
     // WRITE YELLOW LED ON HERE, since we start in Disabled state
@@ -78,6 +92,9 @@ void setup()
     lcd.begin(16, 2);    // Initialize LCD
 
     ADCInit();           // Initialize ADC
+
+
+    
 }
 //
 //
@@ -89,8 +106,8 @@ void setup()
 //
 void loop() 
 {
-    unsigned int waterLevel = ADCRead(0); // ADC signal wire is in A0
-    dht11.read(4); // TODO: Put dht signal DIGITAL port we are reading here
+    waterLevel = ADCRead(0); // ADC signal wire is in A0
+    dht.read(4); // TODO: Put dht signal DIGITAL port we are reading here
     if (state == idle)
     {
         IdleProcess(waterLevel);
@@ -123,31 +140,43 @@ void DisabledProcess()
     // goto idle state when ISR hits, turn on green led
 }
 
-void IdleProcess(unsigned int waterLevel)
+void IdleProcess()
 {
     HandleVentButtons();
-    if(dht11.temperature > temperatureThreshold)
+    if(dht.temperature > temperatureThreshold)
     {
+        state = running;
+        setFanOn(true); // start fan motor
+        // set blue LED on
+        // turn green LED off
+    }
 
+    if(waterLevel <= waterThreshold)
+    {
+        state = error;
+        // turn red LED on
+        // turn green LED off
+        // error message on LCd
+        SetFanOn(false); // motor off
     }
 }
 
-void RunningProcess(unsigned int waterLevel)
+void RunningProcess()
 {
     HandleVentButtons();
-    if(waterLevel <= errorWaterThreshold)
+    if(waterLevel < waterThreshold)
     {
         state = error;
         // turn off blue led
         // turn on red led
         // error message on LCD
-        // motor off
+        SetFanOn(false); // motor off
 
     }
 
 }
 
-void ErrorProcess(unsigned int waterLevel)
+void ErrorProcess()
 {
     HandleVentButtons();
     //if(read()) read reset button
@@ -176,7 +205,6 @@ void HandleVentButtons()
     {
         if(pb7)
         {
-
             // adjust vent 1 way (stepper motor)
             stepper.step(1);
         }
@@ -241,6 +269,48 @@ unsigned int ADCRead(unsigned char adc_channel_num)
   return *my_ADC_DATA;
 }
 
+void SetupStartButtonRegisters()
+{
+
+}
+//
+//
+//
+
+
+//
+// INTERRUPTS
+//
+ISR (PCINT1_vect) // PCINT1 for PJ1
+{
+    if(*pin_j == 1)
+    {
+        //button released
+        startButtonReleased = true;
+        if(state != disabled) // act as stop button
+        {
+            state = disabled;
+            SetFanOn(false); // turn off fan motor
+            // turn yellow LED on
+            // turn all other LEDs off
+        }
+        else
+        {
+            state = idle;
+            // turn green LED on
+            // turn yellow LED off
+        }
+    }
+
+    if(*pin_j == 3)
+    {
+        if(startButtonReleased)
+        {
+            //button pressed
+            startButtonReleased = false;
+        }
+    }
+}
 //
 //
 //
