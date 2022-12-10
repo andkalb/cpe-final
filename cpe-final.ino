@@ -6,6 +6,8 @@
 #include <LiquidCrystal.h>
 #include <Stepper.h>
 #include <dht11.h>
+#include <Wire.h>
+#include "RTClib.h" // the adafruit library
 
 //
 // ADDRESSES/PORT SETUP
@@ -31,8 +33,18 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
+volatile unsigned char *myTCCR1A = (unsigned char *) 0x80;
+volatile unsigned char *myTCCR1B = (unsigned char *) 0x81;
+volatile unsigned char *myTCCR1C = (unsigned char *) 0x82;
+volatile unsigned char *myTIMSK1 = (unsigned char *) 0x6F;
+volatile unsigned char *myTIFR1 =  (unsigned char *) 0x36;
+volatile unsigned int  *myTCNT1  = (unsigned  int *) 0x84;
+
 volatile unsigned char* my_PCMSK1 = (unsigned char*) 0x6C; 
 volatile unsigned char* my_PCICR  = (unsigned char*) 0x68; 
+
+#define RDA 0x80 // FOR USART stuff
+#define TBE 0x20 // USART STUFF
 //
 //
 //
@@ -49,6 +61,9 @@ Stepper stepper = Stepper(stepsPerRevolution, 2, 4, 3, 5); // numbers are digita
 
 dht11 dht; // Temp Sensor
 unsigned int waterLevel; // variable for water sensor
+
+RTC_DS1307 rtc;
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 enum State
 {
@@ -75,6 +90,12 @@ unsigned int temperatureThreshold = 20;  // " " " " " " " " " " " " Celsius
 //
 void setup() 
 {
+    while (! rtc.begin()) 
+    {
+        Serial.println("Couldn't find RTC");
+    }
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
     Write(ddr_j, 1, 0); // PJ1 is start button                 INPUT
     Write(port_j, 1, 1); // PJ1 needs pullup resistor enabled
     Write(my_PCMSK1, 2, 1); // PCMSK1 14 set
@@ -92,8 +113,8 @@ void setup()
     lcd.begin(16, 2);    // Initialize LCD
 
     ADCInit();           // Initialize ADC
-
-
+    SetupTimer();
+    *myTCCR1B |= 0x01; // start 1 minute timer
     
 }
 //
@@ -106,6 +127,7 @@ void setup()
 //
 void loop() 
 {
+    DateTime now = rtc.now();
     waterLevel = ADCRead(0); // ADC signal wire is in A0
     dht.read(4); // TODO: Put dht signal DIGITAL port we are reading here
     if (state == idle)
@@ -138,6 +160,7 @@ void DisabledProcess()
     // read start button, switch to running process, USE ISR
     // turn off yellow led when ISR hits
     // goto idle state when ISR hits, turn on green led
+    // nothing to do in here, ISR handles everything
 }
 
 void IdleProcess()
@@ -164,14 +187,20 @@ void IdleProcess()
 void RunningProcess()
 {
     HandleVentButtons();
-    if(waterLevel < waterThreshold)
+    if(waterLevel <= waterThreshold)
     {
         state = error;
         // turn off blue led
         // turn on red led
         // error message on LCD
         SetFanOn(false); // motor off
-
+    }
+    else if (dht.temperature <= temperatureThreshold)
+    {
+        state = idle;
+        // blue led off
+        // green led on
+        SetFanOn(false);
     }
 
 }
@@ -216,11 +245,6 @@ void HandleVentButtons()
     }
 }
 
-void CheckAndOutputLCD()
-{
-
-}
-
 void SetFanOn(bool on)
 {
     // Break/Restore connection to fan
@@ -229,49 +253,87 @@ void SetFanOn(bool on)
 
 void ADCInit()
 {
-  // setup the A register
-  *my_ADCSRA |= 0b10000000; // set bit   7 to 1 to enable the ADC
-  *my_ADCSRA &= 0b11011111; // clear bit 5 to 0 to disable the ADC trigger mode
-  *my_ADCSRA &= 0b11011111; // clear bit 5 to 0 to disable the ADC interrupt
-  *my_ADCSRA &= 0b11011111; // clear bit 5 to 0 to set prescaler selection to slow reading
-  // setup the B register
-  *my_ADCSRB &= 0b11110111; // clear bit 3 to 0 to reset the channel and gain bits
-  *my_ADCSRB &= 0b11111000; // clear bit 2-0 to 0 to set free running mode
-  // setup the MUX Register
-  *my_ADMUX  &= 0b01111111; // clear bit 7 to 0 for AVCC analog reference
-  *my_ADMUX  |= 0b01000000; // set bit   6 to 1 for AVCC analog reference
-  *my_ADMUX  &= 0b11011111; // clear bit 5 to 0 for right adjust result
-  *my_ADMUX  &= 0b11011111; // clear bit 5 to 0 for right adjust result
-  *my_ADMUX  &= 0b11100000; // clear bit 4-0 to 0 to reset the channel and gain bits
+    // setup the A register
+    *my_ADCSRA |= 0b10000000; // set bit   7 to 1 to enable the ADC
+    *my_ADCSRA &= 0b11011111; // clear bit 5 to 0 to disable the ADC trigger mode
+    *my_ADCSRA &= 0b11011111; // clear bit 5 to 0 to disable the ADC interrupt
+    *my_ADCSRA &= 0b11011111; // clear bit 5 to 0 to set prescaler selection to slow reading
+    // setup the B register
+    *my_ADCSRB &= 0b11110111; // clear bit 3 to 0 to reset the channel and gain bits
+    *my_ADCSRB &= 0b11111000; // clear bit 2-0 to 0 to set free running mode
+    // setup the MUX Register
+    *my_ADMUX  &= 0b01111111; // clear bit 7 to 0 for AVCC analog reference
+    *my_ADMUX  |= 0b01000000; // set bit   6 to 1 for AVCC analog reference
+    *my_ADMUX  &= 0b11011111; // clear bit 5 to 0 for right adjust result
+    *my_ADMUX  &= 0b11011111; // clear bit 5 to 0 for right adjust result
+    *my_ADMUX  &= 0b11100000; // clear bit 4-0 to 0 to reset the channel and gain bits
 }
 
 unsigned int ADCRead(unsigned char adc_channel_num)
 {
-  // clear the channel selection bits (MUX 4:0)
-  *my_ADMUX  &= 0b11100000;
-  // clear the channel selection bits (MUX 5)
-  *my_ADCSRB &= 0b11110111;
-  // set the channel number
-  if(adc_channel_num > 7)
-  {
+    // clear the channel selection bits (MUX 4:0)
+    *my_ADMUX  &= 0b11100000;
+    // clear the channel selection bits (MUX 5)
+    *my_ADCSRB &= 0b11110111;
+    // set the channel number
+    if(adc_channel_num > 7)
+    {
     // set the channel selection bits, but remove the most significant bit (bit 3)
     adc_channel_num -= 8;
     // set MUX bit 5
     *my_ADCSRB |= 0b00100000;
-  }
-  // set the channel selection bits
-  *my_ADMUX  += adc_channel_num;
-  // set bit 6 of ADCSRA to 1 to start a conversion
-  *my_ADCSRA |= 0x40;
-  // wait for the conversion to complete
-  while((*my_ADCSRA & 0x40) != 0);
-  // return the result in the ADC data register
-  return *my_ADC_DATA;
+    }
+    // set the channel selection bits
+    *my_ADMUX  += adc_channel_num;
+    // set bit 6 of ADCSRA to 1 to start a conversion
+    *my_ADCSRA |= 0x40;
+    // wait for the conversion to complete
+    while((*my_ADCSRA & 0x40) != 0);
+    // return the result in the ADC data register
+    return *my_ADC_DATA;
 }
 
-void SetupStartButtonRegisters()
+void SetupTimer()
 {
+    // setup timer control registers
+    *myTCCR1A= 0x00;
+    *myTCCR1B= 0X00;
+    *myTCCR1C= 0x00; 
+  
+    // 1024 prescalar
+    *myTCCR1B= 0X00;
+    
+    // reset TOV flag
+    *myTIFR1 |= 0x01;
+  
+    // enable TOV interrupt
+    *myTIMSK1 |= 0x01;
+}
 
+void U0Init(int U0baud)
+{
+    unsigned long FCPU = 16000000;
+    unsigned int tbaud;
+    tbaud = (FCPU / 16 / U0baud - 1);
+    // Same as (FCPU / (16 * U0baud)) - 1;
+    *myUCSR0A = 0x20;
+    *myUCSR0B = 0x18;
+    *myUCSR0C = 0x06;
+    *myUBRR0  = tbaud;
+}
+
+void PutChar(unsigned char U0pdata)
+{
+    while((*myUCSR0A & TBE)==0);
+    *myUDR0 = U0pdata;
+}
+
+void Print(String s)
+{
+    for(int i = 0; i < s.length(); i++)
+    {
+        PutChar(s[i]);
+    }
 }
 //
 //
@@ -310,6 +372,18 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
             startButtonReleased = false;
         }
     }
+}
+
+ISR(TIMER1_OVF_vect)
+{
+    *myTCCR1B &= 0xF8; // stop timer
+    *myTCNT1 =  (unsigned int) (49911);   // load count (1 min hopefully)
+    *myTCCR1B |=   0x01; // restart timer
+    if(state != disabled && state != error)
+    {
+        // lcd print humidity percent and temp val
+    }
+
 }
 //
 //
