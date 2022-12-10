@@ -2,7 +2,7 @@
 // CPE 301 Final Project - Fall 2022
 // Written by Andrew Kalb and Preston Peterson
 //
-#include "helper_functions.ino" // TODO: MIGHT BE UNNECESSARY?
+
 #include <LiquidCrystal.h>
 #include <Stepper.h>
 #include <dht11.h>
@@ -81,10 +81,10 @@ enum State
 State state = disabled;
 
 bool fanOn = false;
-bool startButtonPressed = false;
+bool startButtonReleased = false;
 
 unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
-unsigned int temperatureThreshold = 20;  // " " " " " " " " " " " " Celsius
+unsigned int temperatureThreshold = 25;  // " " " " " " " " " " " " Celsius
 //
 //
 //
@@ -109,7 +109,7 @@ void setup()
     Write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
     Write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
     //Write(ddr_f, 6, 0); // PF6 is the water sensor signal.     INPUT TODO: unnecessary, use adc channel num 0
-    //Write(ddr_k, 6, 0); // PK6 is the humidity sensor signal.  INPUT
+    //Write(ddr_b, 5, 0); // PB5 is the humidity sensor signal.  INPUT
     
    
     // WRITE YELLOW LED ON HERE, since we start in Disabled state
