@@ -78,7 +78,7 @@ dht11 dht; // Temp Sensor
 unsigned int waterLevel; // variable for water sensor
 
 RTC_DS1307 rtc;
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+DateTime now;
 
 enum State
 {
@@ -151,7 +151,7 @@ void setup()
 //
 void loop() 
 {
-    DateTime now = rtc.now();
+    now = rtc.now();
     waterLevel = ADCRead(1); // ADC signal wire is in A1
     dht.read(11); // pb5, digital port 11
     if (state == idle)
@@ -205,9 +205,9 @@ void IdleProcess()
         Write(port_a, GREEN, 0);
 
         // error message on LCD
-        lcd.setCursor(0, 1);
+        lcd.setCursor(0, 0);
         lcd.print("ERROR");
-        lcd.setCursor(1,1);
+        lcd.setCursor(1,0);
         lcd.print("Water lvl low");
 
         SetFanOn(false); // motor off
@@ -224,9 +224,9 @@ void RunningProcess()
         Write(port_a, RED, 1);
         
         // error message on LCD
-        lcd.setCursor(0, 1);
+        lcd.setCursor(0, 0);
         lcd.print("ERROR");
-        lcd.setCursor(1,1);
+        lcd.setCursor(1,0);
         lcd.print("Water lvl low");
         
         SetFanOn(false); // motor off
@@ -377,11 +377,47 @@ void PutChar(unsigned char U0pdata)
 
 void Print(String s)
 {
-    String toPrint = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + ":" + now.minute() + ":" + now.second();
-    toPrint += s + "\n";
+    String toPrint = String(now.year());
     for(int i = 0; i < toPrint.length(); i++)
     {
-        PutChar(toPrint[i]);
+      PutChar(toPrint[i]);
+    }
+    PutChar('/');
+    toPrint = now.month();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar('/');
+    toPrint = now.day();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(' ');
+    toPrint = now.hour();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(':');
+    toPrint = now.minute();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(':');
+    toPrint = now.second();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(' ');
+
+    s += "\n";    
+    for(int i = 0; i < s.length(); i++)
+    {
+        PutChar(s[i]);
     }
 }
 //
@@ -433,10 +469,14 @@ ISR(TIMER1_OVF_vect)
     if(state != disabled && state != error)
     {
         // lcd print humidity percent and temp val
-        lcd.setCursor(0, 1);
-        lcd.print("Humidity: " + dht.humidity + "%");
-        lcd.setCursor(1,1);
-        lcd.print("Temperature: " + dht.temperature + " C")
+        lcd.setCursor(0, 0);
+        lcd.print("Humidity: ");
+        lcd.print((float)dht.humidity, 2);
+        lcd.print("%");
+        lcd.setCursor(1,0);
+        lcd.print("Temperature: ");
+        lcd.print((float)dht.temperature, 2);
+        lcd.print(" C");
     }
 
 }
