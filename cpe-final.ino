@@ -108,7 +108,7 @@ void setup()
 
     Write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
     Write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
-    //Write(ddr_f, 6, 0); // PF6 is the water sensor signal.     INPUT TODO: unnecessary, use adc channel num 0
+    //Write(ddr_f, 1, 0); // PF1 is the water sensor signal.     INPUT TODO: unnecessary, use adc channel num 0
     //Write(ddr_b, 5, 0); // PB5 is the humidity sensor signal.  INPUT
     
    
