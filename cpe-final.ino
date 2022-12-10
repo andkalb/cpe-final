@@ -54,6 +54,11 @@ volatile unsigned char* my_PCICR  = (unsigned char*) 0x68;
  volatile unsigned char *myUDR0   = (unsigned char *)0x00C6;
 #define RDA 0x80 // FOR USART stuff
 #define TBE 0x20 // USART STUFF
+
+#define GREEN 0
+#define BLUE 1
+#define YELLOW 2
+#define RED 3
 //
 //
 //
@@ -67,6 +72,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 const int stepsPerRevolution = 2048;
 Stepper stepper = Stepper(stepsPerRevolution, 2, 4, 3, 5); // numbers are digital ports
+bool ventClockwise = false;
 
 dht11 dht; // Temp Sensor
 unsigned int waterLevel; // variable for water sensor
@@ -115,17 +121,19 @@ void setup()
  
     Write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
     Write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
-    //Write(ddr_f, 1, 0); // PF1 is the water sensor signal.     INPUT TODO: unnecessary, use adc channel num 0
-    //Write(ddr_b, 5, 0); // PB5 is the humidity sensor signal.  INPUT
+    Write(ddr_f, 1, 0); // PF1 is the water sensor signal.     INPUT
+    Write(ddr_b, 5, 0); // PB5 is the humidity sensor signal.  INPUT
     
-    Write(ddr_a, 0, 0); //PA0 is the GREEN LED
-    Write(ddr_a, 1, 0); //PA1 is the BLUE LED
-    Write(ddr_a, 2, 0); //PA2 is the YELLOW LED
-    Write(ddr_a, 3, 0); //PA3 is the RED LED 
-   
-    // WRITE YELLOW LED ON HERE, since we start in Disabled state
+    Write(ddr_a, 0, 1); //PA0 is the GREEN LED  OUTPUT
+    Write(ddr_a, 1, 1); //PA1 is the BLUE LED   OUTPUT
+    Write(ddr_a, 2, 1); //PA2 is the YELLOW LED OUTPUT
+    Write(ddr_a, 3, 1); //PA3 is the RED LED    OUTPUT
 
-    stepper.setSpeed(5); // Initialize step motor
+    Write(ddr_f, 7, 1); // PF7 is Analog 5, the fan connection OUTPUT
+   
+    Write(ddr_a, YELLOW, 1); // WRITE YELLOW LED ON HERE, since we start in Disabled state
+
+    //stepper.setSpeed(5); // Initialize step motor TODO: may need to uncomment
     lcd.begin(16, 2);    // Initialize LCD
 
     ADCInit();           // Initialize ADC
@@ -145,7 +153,7 @@ void loop()
 {
     DateTime now = rtc.now();
     waterLevel = ADCRead(1); // ADC signal wire is in A1
-    dht.read(4); // TODO: Put dht signal DIGITAL port we are reading here
+    dht.read(11); // pb5, digital port 11
     if (state == idle)
     {
         IdleProcess();
@@ -186,16 +194,22 @@ void IdleProcess()
     {
         state = running;
         SetFanOn(true); // start fan motor
-        // set blue LED on
-        // turn green LED off
+        Write(port_a, BLUE, 1);  // set blue LED on
+        Write(port_a, GREEN, 0); // turn green LED off
     }
 
     if(waterLevel <= waterThreshold)
     {
         state = error;
-        // turn red LED on
-        // turn green LED off
-        // error message on LCd
+        Write(port_a, RED, 1);
+        Write(port_a, GREEN, 0);
+
+        // error message on LCD
+        lcd.setCursor(0, 1);
+        lcd.print("ERROR");
+        lcd.setCursor(1,1);
+        lcd.print("Water lvl low");
+
         SetFanOn(false); // motor off
     }
 }
@@ -206,16 +220,22 @@ void RunningProcess()
     if(waterLevel <= waterThreshold)
     {
         state = error;
-        // turn off blue led
-        // turn on red led
+        Write(port_a, BLUE, 0);
+        Write(port_a, RED, 1);
+        
         // error message on LCD
+        lcd.setCursor(0, 1);
+        lcd.print("ERROR");
+        lcd.setCursor(1,1);
+        lcd.print("Water lvl low");
+        
         SetFanOn(false); // motor off
     }
     else if (dht.temperature <= temperatureThreshold)
     {
         state = idle;
-        // blue led off
-        // green led on
+        Write(port_a, BLUE, 0);
+        Write(port_a, GREEN, 1);
         SetFanOn(false);
     }
 
@@ -224,15 +244,15 @@ void RunningProcess()
 void ErrorProcess()
 {
     HandleVentButtons();
-    //if(read()) read reset button
-    //{
-    if(waterLevel > waterThreshold)
+    if(Read(port_j, 0)) // reset button pressed
     {
-        state = idle;
-        // red LED off
-        // green LED on
+        if(waterLevel > waterThreshold)
+        {
+            state = idle;
+            Write(port_a, RED, 0);
+            Write(port_a, GREEN, 1);
+        }
     }
-    // }
 }
 //
 //
@@ -252,11 +272,21 @@ void HandleVentButtons()
         {
             // adjust vent 1 way (stepper motor)
             stepper.step(1);
+            if(!ventClockwise)
+            {
+                Print("Vent Adjusted Clockwise");
+            }
+            ventClockwise = true;
         }
         else if (pb6)
         {
             // adjust vent the other way (stepper motor)
-            stepper.step(1);
+            stepper.step(-1);
+            if(ventClockwise)
+            {
+                Print("Vent Adjusted Counter-Clockwise");
+            }
+            ventClockwise = false;
         }
     }
 }
@@ -264,6 +294,7 @@ void HandleVentButtons()
 void SetFanOn(bool on)
 {
     // Break/Restore connection to fan
+    Write(port_f, 7, on); // PF7 is analog 7
     fanOn = on;
 }
 
@@ -317,7 +348,7 @@ void SetupTimer()
     *myTCCR1C= 0x00; 
   
     // 1024 prescalar
-    *myTCCR1B= 0X00;
+    //*myTCCR1B= 0X00;
     
     // reset TOV flag
     *myTIFR1 |= 0x01;
@@ -346,9 +377,11 @@ void PutChar(unsigned char U0pdata)
 
 void Print(String s)
 {
-    for(int i = 0; i < s.length(); i++)
+    String toPrint = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + ":" + now.minute() + ":" + now.second();
+    toPrint += s + "\n";
+    for(int i = 0; i < toPrint.length(); i++)
     {
-        PutChar(s[i]);
+        PutChar(toPrint[i]);
     }
 }
 //
@@ -369,14 +402,16 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         {
             state = disabled;
             SetFanOn(false); // turn off fan motor
-            // turn yellow LED on
-            // turn all other LEDs off
+            Write(port_a, YELLOW, 1);
+            Write(port_a, GREEN, 0);
+            Write(port_a, RED, 0);
+            Write(port_a, BLUE, 0);
         }
-        else
+        else     // start system
         {
             state = idle;
-            // turn green LED on
-            // turn yellow LED off
+            Write(port_a, GREEN, 1);
+            Write(port_a, YELLOW, 0);
         }
     }
 
@@ -398,6 +433,10 @@ ISR(TIMER1_OVF_vect)
     if(state != disabled && state != error)
     {
         // lcd print humidity percent and temp val
+        lcd.setCursor(0, 1);
+        lcd.print("Humidity: " + dht.humidity + "%");
+        lcd.setCursor(1,1);
+        lcd.print("Temperature: " + dht.temperature + " C")
     }
 
 }
