@@ -133,7 +133,7 @@ void setup()
 void loop() 
 {
     DateTime now = rtc.now();
-    waterLevel = ADCRead(0); // ADC signal wire is in A0; MAY NEED TO CHANGE PIN # HERE OR ON LCD RS PIN.
+    waterLevel = ADCRead(1); // ADC signal wire is in A1
     dht.read(4); // TODO: Put dht signal DIGITAL port we are reading here
     if (state == idle)
     {
