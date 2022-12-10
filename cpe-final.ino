@@ -43,6 +43,11 @@ volatile unsigned int  *myTCNT1  = (unsigned  int *) 0x84;
 volatile unsigned char* my_PCMSK1 = (unsigned char*) 0x6C; 
 volatile unsigned char* my_PCICR  = (unsigned char*) 0x68; 
 
+ volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
+ volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
+ volatile unsigned char *myUCSR0C = (unsigned char *)0x00C2;
+ volatile unsigned int  *myUBRR0  = (unsigned int *) 0x00C4;
+ volatile unsigned char *myUDR0   = (unsigned char *)0x00C6;
 #define RDA 0x80 // FOR USART stuff
 #define TBE 0x20 // USART STUFF
 //
@@ -132,11 +137,11 @@ void loop()
     dht.read(4); // TODO: Put dht signal DIGITAL port we are reading here
     if (state == idle)
     {
-        IdleProcess(waterLevel);
+        IdleProcess();
     }
     else if (state == error)
     {
-        ErrorProcess(waterLevel);
+        ErrorProcess();
     }
     else if (state == disabled)
     {
@@ -144,7 +149,7 @@ void loop()
     }
     else if (state == running)
     {
-        RunningProcess(waterLevel);
+        RunningProcess();
     }
 }
 //
@@ -169,7 +174,7 @@ void IdleProcess()
     if(dht.temperature > temperatureThreshold)
     {
         state = running;
-        setFanOn(true); // start fan motor
+        SetFanOn(true); // start fan motor
         // set blue LED on
         // turn green LED off
     }
