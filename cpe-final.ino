@@ -115,6 +115,10 @@ void setup()
     //Write(ddr_f, 1, 0); // PF1 is the water sensor signal.     INPUT TODO: unnecessary, use adc channel num 0
     //Write(ddr_b, 5, 0); // PB5 is the humidity sensor signal.  INPUT
     
+    Write(ddr_a, 0, 0); //PA0 is the GREEN LED
+    Write(ddr_a, 1, 0); //PA1 is the BLUE LED
+    Write(ddr_a, 2, 0); //PA2 is the YELLOW LED
+    Write(ddr_a, 3, 0); //PA3 is the RED LED 
    
     // WRITE YELLOW LED ON HERE, since we start in Disabled state
 
