@@ -110,6 +110,9 @@ void setup()
     Write(my_PCMSK1, 2, 1); // PCMSK1 14 set
     Write(my_PCICR, 1, 1); // PCIE1 set
 
+    Write(ddr_j, 0, 0); //PJ0 is the RESET button
+    Write(port_j, 0, 1); //PJ0 needs pullup resistor enabled
+ 
     Write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
     Write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
     //Write(ddr_f, 1, 0); // PF1 is the water sensor signal.     INPUT TODO: unnecessary, use adc channel num 0
