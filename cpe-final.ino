@@ -199,8 +199,7 @@ void IdleProcess()
         SetFanOn(true); // start fan motor
         Write(port_a, BLUE, 1);  // set blue LED on
         Write(port_a, GREEN, 0); // turn green LED off
-        previousMin = rtc.now().minute() - 1;
-        CheckAndOutputLCD();
+        previousMin--;
     }
 
     if(waterLevel <= waterThreshold)
@@ -209,8 +208,7 @@ void IdleProcess()
         state = error;
         Write(port_a, RED, 1);
         Write(port_a, GREEN, 0);
-        previousMin = rtc.now().minute() - 1;
-        CheckAndOutputLCD();
+        previousMin--;
 
         // error message on LCD
         lcd.clear();
@@ -233,8 +231,7 @@ void RunningProcess()
         state = error;
         Write(port_a, BLUE, 0);
         Write(port_a, RED, 1);
-        previousMin = rtc.now().minute() - 1;
-        CheckAndOutputLCD();
+        previousMin--;
         
         // error message on LCD
         lcd.setCursor(0, 0);
@@ -248,8 +245,8 @@ void RunningProcess()
     {
         Print("Idle state entered");
         state = idle;
-        previousMin = rtc.now().minute() - 1;
-        CheckAndOutputLCD();
+        previousMin--;
+
         Write(port_a, BLUE, 0);
         Write(port_a, GREEN, 1);
         SetFanOn(false);
@@ -267,8 +264,8 @@ void ErrorProcess()
         {
             Print("Idle state entered");
             state = idle;
-            previousMin = rtc.now().minute() - 1;
-            CheckAndOutputLCD();
+            previousMin--;
+
             Write(port_a, RED, 0);
             Write(port_a, GREEN, 1);
         }
@@ -286,28 +283,25 @@ void HandleVentButtons()
 {
     bool pb7 = Read(port_b, 7);
     bool pb6 = Read(port_b, 6);
-    if(!(pb7 && pb6))
+    if(pb7)
     {
-        if(pb7)
+        // adjust vent 1 way (stepper motor)
+        stepper.step(1);
+        if(!ventClockwise)
         {
-            // adjust vent 1 way (stepper motor)
-            stepper.step(1);
-            if(!ventClockwise)
-            {
-                Print("Vent Adjusted Clockwise");
-            }
-            ventClockwise = true;
+            Print("Vent Adjusted Clockwise");
         }
-        else if (pb6)
+        ventClockwise = true;
+    }
+    else if (pb6)
+    {
+        // adjust vent the other way (stepper motor)
+        stepper.step(-1);
+        if(ventClockwise)
         {
-            // adjust vent the other way (stepper motor)
-            stepper.step(-1);
-            if(ventClockwise)
-            {
-                Print("Vent Adjusted Counter-Clockwise");
-            }
-            ventClockwise = false;
+            Print("Vent Adjusted Counter-Clockwise");
         }
+        ventClockwise = false;
     }
 }
 
@@ -459,8 +453,8 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         {
             Print("Disabled state entered");
             state = disabled;
-            previousMin = rtc.now().minute() - 1;
-            CheckAndOutputLCD();
+            previousMin--;
+
             SetFanOn(false); // turn off fan motor
             Write(port_a, YELLOW, 1);
             Write(port_a, GREEN, 0);
@@ -471,8 +465,8 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         {
             Print("Idle state entered");
             state = idle;
-            previousMin = rtc.now().minute() - 1;
-            CheckAndOutputLCD();
+            previousMin--;
+
             Write(port_a, GREEN, 1);
             Write(port_a, YELLOW, 0);
         }
