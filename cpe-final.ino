@@ -228,6 +228,7 @@ void IdleProcess()
         state = error;
         Write(port_a, RED, 1);
         Write(port_a, GREEN, 0);
+        Write(port_a, BLUE, 0);
         previousMin--;
 
         // error message on LCD
@@ -288,6 +289,7 @@ void ErrorProcess()
 
             Write(port_a, RED, 0);
             Write(port_a, GREEN, 1);
+            Write(port_a, BLUE, 0);
         }
     }
 }
@@ -489,6 +491,7 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
 
             Write(port_a, GREEN, 1);
             Write(port_a, YELLOW, 0);
+            Write(port_a, BLUE, 0);
         }
     }
 
