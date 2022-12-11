@@ -24,6 +24,10 @@ volatile unsigned char* port_f = (unsigned char*) 0x31;
 volatile unsigned char* ddr_f  = (unsigned char*) 0x30; 
 volatile unsigned char* pin_f  = (unsigned char*) 0x2F;
 
+volatile unsigned char* port_h = (unsigned char*) 0x102; 
+volatile unsigned char* ddr_h  = (unsigned char*) 0x101; 
+volatile unsigned char* pin_h  = (unsigned char*) 0x100;
+
 volatile unsigned char* port_j = (unsigned char*) 0x105; 
 volatile unsigned char* ddr_j  = (unsigned char*) 0x104; 
 volatile unsigned char* pin_j  = (unsigned char*) 0x103;
@@ -120,8 +124,8 @@ void setup()
     Write(ddr_j, 0, 0); //PJ0 is the RESET button
     Write(port_j, 0, 1); //PJ0 needs pullup resistor enabled
  
-    Write(ddr_b, 7, 0); // PB7 is one vent control button.     INPUT
-    Write(ddr_b, 6, 0); // PB6 is another vent control button. INPUT
+    Write(ddr_h, 4, 0); // PH4 is one vent control button.     INPUT
+    Write(ddr_h, 3, 0); // PH3 is another vent control button. INPUT
     Write(ddr_f, 1, 0); // PF1 is the water sensor signal.     INPUT
     Write(ddr_b, 5, 0); // PB5 is the humidity sensor signal.  INPUT
     
@@ -281,8 +285,8 @@ void ErrorProcess()
 //
 void HandleVentButtons()
 {
-    bool pb7 = Read(port_b, 7);
-    bool pb6 = Read(port_b, 6);
+    bool ph4 = Read(port_h, 4);
+    bool ph3 = Read(port_h, 3);
     if(pb7)
     {
         // adjust vent 1 way (stepper motor)
