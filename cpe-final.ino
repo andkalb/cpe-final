@@ -207,7 +207,7 @@ void IdleProcess()
         // error message on LCD
         lcd.setCursor(0, 0);
         lcd.print("ERROR");
-        lcd.setCursor(1,0);
+        lcd.setCursor(0, 1);
         lcd.print("Water lvl low");
 
         SetFanOn(false); // motor off
@@ -226,7 +226,7 @@ void RunningProcess()
         // error message on LCD
         lcd.setCursor(0, 0);
         lcd.print("ERROR");
-        lcd.setCursor(1,0);
+        lcd.setCursor(0, 1);
         lcd.print("Water lvl low");
         
         SetFanOn(false); // motor off
@@ -468,12 +468,12 @@ ISR(TIMER1_OVF_vect)
     *myTCCR1B |=   0x01; // restart timer
     if(state != disabled && state != error)
     {
-        // lcd print humidity percent and temp val
+        // print humidity percent and temp val
         lcd.setCursor(0, 0);
         lcd.print("Humidity: ");
         lcd.print((float)dht.humidity, 2);
         lcd.print("%");
-        lcd.setCursor(1,0);
+        lcd.setCursor(0, 1);
         lcd.print("Temperature: ");
         lcd.print((float)dht.temperature, 2);
         lcd.print(" C");
