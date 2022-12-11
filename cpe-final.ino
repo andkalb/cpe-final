@@ -20,9 +20,17 @@ volatile unsigned char* port_b = (unsigned char*) 0x25;
 volatile unsigned char* ddr_b  = (unsigned char*) 0x24; 
 volatile unsigned char* pin_b  = (unsigned char*) 0x23;
 
+volatile unsigned char* port_e = (unsigned char*) 0x2E; 
+volatile unsigned char* ddr_e  = (unsigned char*) 0x2D; 
+volatile unsigned char* pin_e  = (unsigned char*) 0x2C;
+
 volatile unsigned char* port_f = (unsigned char*) 0x31; 
 volatile unsigned char* ddr_f  = (unsigned char*) 0x30; 
 volatile unsigned char* pin_f  = (unsigned char*) 0x2F;
+
+volatile unsigned char* port_g = (unsigned char*) 0x34; 
+volatile unsigned char* ddr_g  = (unsigned char*) 0x33; 
+volatile unsigned char* pin_g  = (unsigned char*) 0x32;
 
 volatile unsigned char* port_h = (unsigned char*) 0x102; 
 volatile unsigned char* ddr_h  = (unsigned char*) 0x101; 
@@ -94,7 +102,7 @@ State state = disabled;
 bool fanOn = false;
 bool startButtonReleased = false;
 
-unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
+unsigned int waterThreshold = 100;       // DETERMINE THESE CONSTANTS
 unsigned int temperatureThreshold = 25;  // " " " " " " " " " " " " Celsius
 
 int previousMin = 0;
@@ -126,6 +134,11 @@ void setup()
  
     Write(ddr_h, 4, 0); // PH4 is one vent control button.     INPUT
     Write(ddr_h, 3, 0); // PH3 is another vent control button. INPUT
+    Write(ddr_e, 3, 1); // PE3 is a vent stepper motor output  OUTPUT
+    Write(ddr_e, 4, 1); // PE4 is a vent stepper motor output  OUTPUT
+    Write(ddr_e, 5, 1); // PE5 is a vent stepper motor output  OUTPUT
+    Write(ddr_g, 5, 1); // PG4 is a vent stepper motor output  OUTPUT
+
     Write(ddr_f, 1, 0); // PF1 is the water sensor signal.     INPUT
     Write(ddr_b, 5, 0); // PB5 is the humidity sensor signal.  INPUT
     
