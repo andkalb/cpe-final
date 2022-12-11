@@ -107,10 +107,10 @@ void setup()
     while (! rtc.begin()) 
     {
         Print("Couldn't find RTC");
-        Print("Couldn't find RTC");
     }
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    previousMin = rtc.now().minute();
+    previousMin = rtc.now().minute() - 1;
+    CheckAndOutputLCD();
 
     Write(ddr_j, 1, 0); // PJ1 is start button                 INPUT
     Write(port_j, 1, 1); // PJ1 needs pullup resistor enabled
@@ -199,6 +199,8 @@ void IdleProcess()
         SetFanOn(true); // start fan motor
         Write(port_a, BLUE, 1);  // set blue LED on
         Write(port_a, GREEN, 0); // turn green LED off
+        previousMin = rtc.now().minute() - 1;
+        CheckAndOutputLCD();
     }
 
     if(waterLevel <= waterThreshold)
@@ -207,8 +209,11 @@ void IdleProcess()
         state = error;
         Write(port_a, RED, 1);
         Write(port_a, GREEN, 0);
+        previousMin = rtc.now().minute() - 1;
+        CheckAndOutputLCD();
 
         // error message on LCD
+        lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("ERROR");
         lcd.setCursor(0, 1);
@@ -228,6 +233,8 @@ void RunningProcess()
         state = error;
         Write(port_a, BLUE, 0);
         Write(port_a, RED, 1);
+        previousMin = rtc.now().minute() - 1;
+        CheckAndOutputLCD();
         
         // error message on LCD
         lcd.setCursor(0, 0);
@@ -241,6 +248,8 @@ void RunningProcess()
     {
         Print("Idle state entered");
         state = idle;
+        previousMin = rtc.now().minute() - 1;
+        CheckAndOutputLCD();
         Write(port_a, BLUE, 0);
         Write(port_a, GREEN, 1);
         SetFanOn(false);
@@ -258,6 +267,8 @@ void ErrorProcess()
         {
             Print("Idle state entered");
             state = idle;
+            previousMin = rtc.now().minute() - 1;
+            CheckAndOutputLCD();
             Write(port_a, RED, 0);
             Write(port_a, GREEN, 1);
         }
@@ -413,7 +424,7 @@ void Print(String s)
 
 void CheckAndOutputLCD()
 {
-    if((now.minute() - previousMin) > 0)
+    if(now.minute() != previousMin)
     {
         previousMin = now.minute();
         if(state != disabled && state != error)
@@ -424,7 +435,7 @@ void CheckAndOutputLCD()
             lcd.print((float)dht.humidity, 2);
             lcd.print("%");
             lcd.setCursor(0, 1);
-            lcd.print("Temperature: ");
+            lcd.print("Temp: ");
             lcd.print((float)dht.temperature, 2);
             lcd.print(" C");
         }
@@ -448,6 +459,8 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         {
             Print("Disabled state entered");
             state = disabled;
+            previousMin = rtc.now().minute() - 1;
+            CheckAndOutputLCD();
             SetFanOn(false); // turn off fan motor
             Write(port_a, YELLOW, 1);
             Write(port_a, GREEN, 0);
@@ -458,6 +471,8 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         {
             Print("Idle state entered");
             state = idle;
+            previousMin = rtc.now().minute() - 1;
+            CheckAndOutputLCD();
             Write(port_a, GREEN, 1);
             Write(port_a, YELLOW, 0);
         }
