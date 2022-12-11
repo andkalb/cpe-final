@@ -74,8 +74,8 @@ const int stepsPerRevolution = 2048;
 Stepper stepper = Stepper(stepsPerRevolution, 2, 4, 3, 5); // numbers are digital ports
 bool ventClockwise = false;
 
-volatile DHT dht(11, DHT11); // Temp Sensor
-volatile unsigned int waterLevel; // variable for water sensor
+DHT dht(11, DHT11); // Temp Sensor
+unsigned int waterLevel; // variable for water sensor
 
 RTC_DS1307 rtc;
 DateTime now;
@@ -88,15 +88,12 @@ enum State
     running
 };
 
-volatile State state = disabled;
+State state = disabled;
 
 
 
-volatile bool fanOn = false;
-volatile bool startButtonReleased = false;
-
-volatile unsigned int temp = 0;
-volatile unsigned int humidity = 0;
+bool fanOn = false;
+bool startButtonReleased = false;
 
 
 volatile const unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
@@ -199,7 +196,7 @@ void DisabledProcess()
 void IdleProcess()
 {
     HandleVentButtons();
-    if(temp > temperatureThreshold)
+    if(dht.readTemperature() > temperatureThreshold)
     {
         Print("Running state entered");
         state = running;
@@ -243,7 +240,7 @@ void RunningProcess()
         
         SetFanOn(false); // motor off
     }
-    else if (temp <= temperatureThreshold)
+    else if (dht.readTemperature() <= temperatureThreshold)
     {
         Print("Idle state entered");
         state = idle;
@@ -487,11 +484,11 @@ ISR(TIMER1_OVF_vect)
         // print humidity percent and temp val
         lcd.setCursor(0, 0);
         lcd.print("Humidity: ");
-        lcd.print((float)humidity, 2);
+        lcd.print((float)dht.readHumidity(), 2);
         lcd.print("%");
         lcd.setCursor(0, 1);
         lcd.print("Temp: ");
-        lcd.print((float)temp, 2);
+        lcd.print((float)dht.readTemperature(), 2);
         lcd.print(" C");
     }
 
