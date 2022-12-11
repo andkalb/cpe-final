@@ -95,6 +95,10 @@ State state = disabled;
 bool fanOn = false;
 bool startButtonReleased = false;
 
+unsigned int temp = 0;
+unsigned int humidity = 0;
+
+
 unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
 unsigned int temperatureThreshold = 25;  // " " " " " " " " " " " " Celsius
 //
@@ -157,6 +161,9 @@ void loop()
     now = rtc.now();
     waterLevel = ADCRead(1); // ADC signal wire is in A1
     dht.read(11); // pb5, digital port 11
+    temp = dht.temperature();
+    humidity = dht.humidity();
+ 
     if (state == idle)
     {
         IdleProcess();
@@ -193,7 +200,7 @@ void DisabledProcess()
 void IdleProcess()
 {
     HandleVentButtons();
-    if(dht.temperature > temperatureThreshold)
+    if(temp > temperatureThreshold)
     {
         Print("Running state entered");
         state = running;
@@ -237,7 +244,7 @@ void RunningProcess()
         
         SetFanOn(false); // motor off
     }
-    else if (dht.temperature <= temperatureThreshold)
+    else if (temp <= temperatureThreshold)
     {
         Print("Idle state entered");
         state = idle;
@@ -481,11 +488,11 @@ ISR(TIMER1_OVF_vect)
         // print humidity percent and temp val
         lcd.setCursor(0, 0);
         lcd.print("Humidity: ");
-        lcd.print((float)dht.humidity, 2);
+        lcd.print((float)humidity, 2);
         lcd.print("%");
         lcd.setCursor(0, 1);
-        lcd.print("Temperature: ");
-        lcd.print((float)dht.temperature, 2);
+        lcd.print("Temp: ");
+        lcd.print((float)temp, 2);
         lcd.print(" C");
     }
 
