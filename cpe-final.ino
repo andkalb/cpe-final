@@ -278,7 +278,7 @@ void ErrorProcess()
 {
     HandleVentButtons();
     CheckAndOutputLCD();
-    if(Read(pin_j, 0)) // reset button pressed
+    if(Read(pin_h, 5)) // reset button pressed
     {
         if(waterLevel > waterThreshold)
         {
