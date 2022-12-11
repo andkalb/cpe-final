@@ -90,6 +90,8 @@ enum State
 
 State state = disabled;
 
+
+
 bool fanOn = false;
 bool startButtonReleased = false;
 
@@ -107,7 +109,7 @@ void setup()
 {
     while (! rtc.begin()) 
     {
-        Serial.println("Couldn't find RTC");
+        Print("Couldn't find RTC");
     }
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
@@ -139,6 +141,7 @@ void setup()
     ADCInit();           // Initialize ADC
     SetupTimer();
     *myTCCR1B |= 0x01; // start 1 minute timer
+     Print("Disabled state entered");
     
 }
 //
@@ -192,6 +195,7 @@ void IdleProcess()
     HandleVentButtons();
     if(dht.temperature > temperatureThreshold)
     {
+        Print("Running state entered");
         state = running;
         SetFanOn(true); // start fan motor
         Write(port_a, BLUE, 1);  // set blue LED on
@@ -200,6 +204,7 @@ void IdleProcess()
 
     if(waterLevel <= waterThreshold)
     {
+        Print("Error state entered");
         state = error;
         Write(port_a, RED, 1);
         Write(port_a, GREEN, 0);
@@ -219,6 +224,7 @@ void RunningProcess()
     HandleVentButtons();
     if(waterLevel <= waterThreshold)
     {
+        Print("Error state entered");
         state = error;
         Write(port_a, BLUE, 0);
         Write(port_a, RED, 1);
@@ -233,6 +239,7 @@ void RunningProcess()
     }
     else if (dht.temperature <= temperatureThreshold)
     {
+        Print("Idle state entered");
         state = idle;
         Write(port_a, BLUE, 0);
         Write(port_a, GREEN, 1);
@@ -248,6 +255,7 @@ void ErrorProcess()
     {
         if(waterLevel > waterThreshold)
         {
+            Print("Idle state entered");
             state = idle;
             Write(port_a, RED, 0);
             Write(port_a, GREEN, 1);
@@ -436,6 +444,7 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         startButtonReleased = true;
         if(state != disabled) // act as stop button
         {
+            Print("Disabled state entered");
             state = disabled;
             SetFanOn(false); // turn off fan motor
             Write(port_a, YELLOW, 1);
@@ -445,6 +454,7 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         }
         else     // start system
         {
+            Print("Idle state entered");
             state = idle;
             Write(port_a, GREEN, 1);
             Write(port_a, YELLOW, 0);
