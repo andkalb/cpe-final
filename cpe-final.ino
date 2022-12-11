@@ -5,7 +5,7 @@
 
 #include <LiquidCrystal.h>
 #include <Stepper.h>
-#include <dht11.h>
+#include "DHT.h"
 #include <Wire.h>
 #include "RTClib.h" // the adafruit library
 
@@ -67,10 +67,11 @@ const int stepsPerRevolution = 2048;
 Stepper stepper = Stepper(stepsPerRevolution, 2, 4, 3, 5); // numbers are digital ports
 bool ventClockwise = false;
 
-dht11 dht; // Temp Sensor
+DHT dht(11, DHT11); // Temp Sensor
 unsigned int waterLevel; // variable for water sensor
 
 RTC_DS1307 rtc;
+DateTime now;
 DateTime now;
 
 enum State
@@ -82,6 +83,8 @@ enum State
 };
 
 State state = disabled;
+
+
 
 
 
@@ -104,6 +107,7 @@ void setup()
 {
     while (! rtc.begin()) 
     {
+        Print("Couldn't find RTC");
         Print("Couldn't find RTC");
     }
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -151,8 +155,11 @@ void setup()
 void loop() 
 {
     now = rtc.now();
+    now = rtc.now();
     waterLevel = ADCRead(1); // ADC signal wire is in A1
-    dht.read(11); // pb5, digital port 11
+    temp = dht.readTemperature();
+    humidity = dht.readHumidity();
+ 
     if (state == idle)
     {
         IdleProcess();
@@ -235,7 +242,7 @@ void RunningProcess()
         
         SetFanOn(false); // motor off
     }
-    else if (dht.temperature <= temperatureThreshold)
+    else if (dht.readTemperature() <= temperatureThreshold)
     {
         Print("Idle state entered");
         state = idle;
@@ -398,8 +405,40 @@ void Print(String s)
     }
     PutChar(':');
     toPrint = now.second();
+    String toPrint = String(now.year());
     for(int i = 0; i < toPrint.length(); i++)
     {
+      PutChar(toPrint[i]);
+    }
+    PutChar('/');
+    toPrint = now.month();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar('/');
+    toPrint = now.day();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(' ');
+    toPrint = now.hour();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(':');
+    toPrint = now.minute();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(':');
+    toPrint = now.second();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
       PutChar(toPrint[i]);
     }
     PutChar(' ');
