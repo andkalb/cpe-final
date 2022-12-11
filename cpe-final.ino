@@ -116,6 +116,7 @@ int previousMin = 0;
 //
 void setup() 
 {
+    U0Init(9600);
     while (! rtc.begin()) 
     {
         Print("Couldn't find RTC");
@@ -132,8 +133,10 @@ void setup()
     Write(ddr_j, 0, 0); //PJ0 is the RESET button
     Write(port_j, 0, 1); //PJ0 needs pullup resistor enabled
  
-    Write(ddr_h, 4, 0); // PH4 is one vent control button.     INPUT
-    Write(ddr_h, 3, 0); // PH3 is another vent control button. INPUT
+    Write(ddr_h, 4, 0);  //PH4 is one vent control button.     INPUT
+    Write(port_h, 4, 1); //PH4 needs a pullup resistor.
+    Write(ddr_h, 3, 0);  // PH3 is another vent control button. INPUT
+    Write(port_h, 3, 1); //PH3 needs a pullup resistor.
     Write(ddr_e, 3, 1); // PE3 is a vent stepper motor output  OUTPUT
     Write(ddr_e, 4, 1); // PE4 is a vent stepper motor output  OUTPUT
     Write(ddr_e, 5, 1); // PE5 is a vent stepper motor output  OUTPUT
@@ -151,7 +154,7 @@ void setup()
    
     Write(ddr_a, YELLOW, 1); // WRITE YELLOW LED ON HERE, since we start in Disabled state
 
-    //stepper.setSpeed(5); // Initialize step motor TODO: may need to uncomment
+    stepper.setSpeed(5); // Initialize step motor TODO: may need to uncomment
     lcd.begin(16, 2);    // Initialize LCD
 
     ADCInit();           // Initialize ADC
@@ -275,7 +278,7 @@ void ErrorProcess()
 {
     HandleVentButtons();
     CheckAndOutputLCD();
-    if(Read(port_j, 0)) // reset button pressed
+    if(Read(pin_j, 0)) // reset button pressed
     {
         if(waterLevel > waterThreshold)
         {
@@ -298,12 +301,12 @@ void ErrorProcess()
 //
 void HandleVentButtons()
 {
-    bool ph4 = Read(port_h, 4);
-    bool ph3 = Read(port_h, 3);
+    bool ph4 = Read(pin_h, 4);
+    bool ph3 = Read(pin_h, 3);
     if(ph4)
     {
         // adjust vent 1 way (stepper motor)
-        stepper.step(1);
+        stepper.step(100);
         if(!ventClockwise)
         {
             Print("Vent Adjusted Clockwise");
@@ -313,7 +316,7 @@ void HandleVentButtons()
     else if (ph3)
     {
         // adjust vent the other way (stepper motor)
-        stepper.step(-1);
+        stepper.step(-100);
         if(ventClockwise)
         {
             Print("Vent Adjusted Counter-Clockwise");
