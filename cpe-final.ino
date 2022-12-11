@@ -5,7 +5,7 @@
 
 #include <LiquidCrystal.h>
 #include <Stepper.h>
-#include "DHT.h"
+#include <dht11.h>
 #include <Wire.h>
 #include "RTClib.h" // the adafruit library
 
@@ -40,11 +40,11 @@ volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 volatile unsigned char* my_PCMSK1 = (unsigned char*) 0x6C; 
 volatile unsigned char* my_PCICR  = (unsigned char*) 0x68; 
 
- volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
- volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
- volatile unsigned char *myUCSR0C = (unsigned char *)0x00C2;
- volatile unsigned int  *myUBRR0  = (unsigned int *) 0x00C4;
- volatile unsigned char *myUDR0   = (unsigned char *)0x00C6;
+volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
+volatile unsigned char *myUCSR0B = (unsigned char *)0x00C1;
+volatile unsigned char *myUCSR0C = (unsigned char *)0x00C2;
+volatile unsigned int  *myUBRR0  = (unsigned int *) 0x00C4;
+volatile unsigned char *myUDR0   = (unsigned char *)0x00C6;
 #define RDA 0x80 // FOR USART stuff
 #define TBE 0x20 // USART STUFF
 
@@ -67,11 +67,10 @@ const int stepsPerRevolution = 2048;
 Stepper stepper = Stepper(stepsPerRevolution, 2, 4, 3, 5); // numbers are digital ports
 bool ventClockwise = false;
 
-DHT dht(11, DHT11); // Temp Sensor
+dht11 dht; // Temp Sensor
 unsigned int waterLevel; // variable for water sensor
 
 RTC_DS1307 rtc;
-DateTime now;
 DateTime now;
 
 enum State
@@ -139,9 +138,7 @@ void setup()
     lcd.begin(16, 2);    // Initialize LCD
 
     ADCInit();           // Initialize ADC
-    SetupTimer();
-    *myTCCR1B |= 0x01; // start 1 minute timer
-     Print("Disabled state entered");
+    Print("Disabled state entered");
     
 }
 //
@@ -155,10 +152,8 @@ void setup()
 void loop() 
 {
     now = rtc.now();
-    now = rtc.now();
     waterLevel = ADCRead(1); // ADC signal wire is in A1
-    temp = dht.readTemperature();
-    humidity = dht.readHumidity();
+    dht.read(11); // read digital 11
  
     if (state == idle)
     {
@@ -242,7 +237,7 @@ void RunningProcess()
         
         SetFanOn(false); // motor off
     }
-    else if (dht.readTemperature() <= temperatureThreshold)
+    else if (dht.temperature <= temperatureThreshold)
     {
         Print("Idle state entered");
         state = idle;
@@ -405,44 +400,10 @@ void Print(String s)
     }
     PutChar(':');
     toPrint = now.second();
-    String toPrint = String(now.year());
     for(int i = 0; i < toPrint.length(); i++)
     {
       PutChar(toPrint[i]);
     }
-    PutChar('/');
-    toPrint = now.month();
-    for(int i = 0; i < toPrint.length(); i++)
-    {
-      PutChar(toPrint[i]);
-    }
-    PutChar('/');
-    toPrint = now.day();
-    for(int i = 0; i < toPrint.length(); i++)
-    {
-      PutChar(toPrint[i]);
-    }
-    PutChar(' ');
-    toPrint = now.hour();
-    for(int i = 0; i < toPrint.length(); i++)
-    {
-      PutChar(toPrint[i]);
-    }
-    PutChar(':');
-    toPrint = now.minute();
-    for(int i = 0; i < toPrint.length(); i++)
-    {
-      PutChar(toPrint[i]);
-    }
-    PutChar(':');
-    toPrint = now.second();
-    for(int i = 0; i < toPrint.length(); i++)
-    {
-      PutChar(toPrint[i]);
-      PutChar(toPrint[i]);
-    }
-    PutChar(' ');
-
     s += "\n";    
     for(int i = 0; i < s.length(); i++)
     {
