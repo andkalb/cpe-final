@@ -37,13 +37,6 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
-volatile unsigned char *myTCCR1A = (unsigned char *) 0x80;
-volatile unsigned char *myTCCR1B = (unsigned char *) 0x81;
-volatile unsigned char *myTCCR1C = (unsigned char *) 0x82;
-volatile unsigned char *myTIMSK1 = (unsigned char *) 0x6F;
-volatile unsigned char *myTIFR1 =  (unsigned char *) 0x36;
-volatile unsigned int  *myTCNT1  = (unsigned  int *) 0x84;
-
 volatile unsigned char* my_PCMSK1 = (unsigned char*) 0x6C; 
 volatile unsigned char* my_PCICR  = (unsigned char*) 0x68; 
 
@@ -78,7 +71,7 @@ dht11 dht; // Temp Sensor
 unsigned int waterLevel; // variable for water sensor
 
 RTC_DS1307 rtc;
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+DateTime now;
 
 enum State
 {
@@ -90,11 +83,15 @@ enum State
 
 State state = disabled;
 
+
+
 bool fanOn = false;
 bool startButtonReleased = false;
 
 unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
 unsigned int temperatureThreshold = 25;  // " " " " " " " " " " " " Celsius
+
+int previousMin = 0;
 //
 //
 //
@@ -107,9 +104,10 @@ void setup()
 {
     while (! rtc.begin()) 
     {
-        Serial.println("Couldn't find RTC");
+        Print("Couldn't find RTC");
     }
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    previousMin = rtc.now().minute();
 
     Write(ddr_j, 1, 0); // PJ1 is start button                 INPUT
     Write(port_j, 1, 1); // PJ1 needs pullup resistor enabled
@@ -139,6 +137,7 @@ void setup()
     ADCInit();           // Initialize ADC
     SetupTimer();
     *myTCCR1B |= 0x01; // start 1 minute timer
+     Print("Disabled state entered");
     
 }
 //
@@ -151,7 +150,7 @@ void setup()
 //
 void loop() 
 {
-    DateTime now = rtc.now();
+    now = rtc.now();
     waterLevel = ADCRead(1); // ADC signal wire is in A1
     dht.read(11); // pb5, digital port 11
     if (state == idle)
@@ -190,8 +189,10 @@ void DisabledProcess()
 void IdleProcess()
 {
     HandleVentButtons();
+    CheckAndOutputLCD();
     if(dht.temperature > temperatureThreshold)
     {
+        Print("Running state entered");
         state = running;
         SetFanOn(true); // start fan motor
         Write(port_a, BLUE, 1);  // set blue LED on
@@ -200,14 +201,15 @@ void IdleProcess()
 
     if(waterLevel <= waterThreshold)
     {
+        Print("Error state entered");
         state = error;
         Write(port_a, RED, 1);
         Write(port_a, GREEN, 0);
 
         // error message on LCD
-        lcd.setCursor(0, 1);
+        lcd.setCursor(0, 0);
         lcd.print("ERROR");
-        lcd.setCursor(1,1);
+        lcd.setCursor(0, 1);
         lcd.print("Water lvl low");
 
         SetFanOn(false); // motor off
@@ -217,22 +219,25 @@ void IdleProcess()
 void RunningProcess()
 {
     HandleVentButtons();
+    CheckAndOutputLCD();
     if(waterLevel <= waterThreshold)
     {
+        Print("Error state entered");
         state = error;
         Write(port_a, BLUE, 0);
         Write(port_a, RED, 1);
         
         // error message on LCD
-        lcd.setCursor(0, 1);
+        lcd.setCursor(0, 0);
         lcd.print("ERROR");
-        lcd.setCursor(1,1);
+        lcd.setCursor(0, 1);
         lcd.print("Water lvl low");
         
         SetFanOn(false); // motor off
     }
     else if (dht.temperature <= temperatureThreshold)
     {
+        Print("Idle state entered");
         state = idle;
         Write(port_a, BLUE, 0);
         Write(port_a, GREEN, 1);
@@ -244,10 +249,12 @@ void RunningProcess()
 void ErrorProcess()
 {
     HandleVentButtons();
+    CheckAndOutputLCD();
     if(Read(port_j, 0)) // reset button pressed
     {
         if(waterLevel > waterThreshold)
         {
+            Print("Idle state entered");
             state = idle;
             Write(port_a, RED, 0);
             Write(port_a, GREEN, 1);
@@ -340,23 +347,6 @@ unsigned int ADCRead(unsigned char adc_channel_num)
     return *my_ADC_DATA;
 }
 
-void SetupTimer()
-{
-    // setup timer control registers
-    *myTCCR1A= 0x00;
-    *myTCCR1B= 0X00;
-    *myTCCR1C= 0x00; 
-  
-    // 1024 prescalar
-    //*myTCCR1B= 0X00;
-    
-    // reset TOV flag
-    *myTIFR1 |= 0x01;
-  
-    // enable TOV interrupt
-    *myTIMSK1 |= 0x01;
-}
-
 void U0Init(int U0baud)
 {
     unsigned long FCPU = 16000000;
@@ -377,11 +367,67 @@ void PutChar(unsigned char U0pdata)
 
 void Print(String s)
 {
-    String toPrint = now.year() + "/" + now.month() + "/" + now.day() + " " + now.hour() + ":" + now.minute() + ":" + now.second();
-    toPrint += s + "\n";
+    String toPrint = String(now.year());
     for(int i = 0; i < toPrint.length(); i++)
     {
-        PutChar(toPrint[i]);
+      PutChar(toPrint[i]);
+    }
+    PutChar('/');
+    toPrint = now.month();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar('/');
+    toPrint = now.day();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(' ');
+    toPrint = now.hour();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(':');
+    toPrint = now.minute();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(':');
+    toPrint = now.second();
+    for(int i = 0; i < toPrint.length(); i++)
+    {
+      PutChar(toPrint[i]);
+    }
+    PutChar(' ');
+
+    s += "\n";    
+    for(int i = 0; i < s.length(); i++)
+    {
+        PutChar(s[i]);
+    }
+}
+
+void CheckAndOutputLCD()
+{
+    if((now.minute() - previousMin) > 0)
+    {
+        previousMin = now.minute();
+        if(state != disabled && state != error)
+        {
+            // print humidity percent and temp val
+            lcd.setCursor(0, 0);
+            lcd.print("Humidity: ");
+            lcd.print((float)dht.humidity, 2);
+            lcd.print("%");
+            lcd.setCursor(0, 1);
+            lcd.print("Temperature: ");
+            lcd.print((float)dht.temperature, 2);
+            lcd.print(" C");
+        }
     }
 }
 //
@@ -400,6 +446,7 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         startButtonReleased = true;
         if(state != disabled) // act as stop button
         {
+            Print("Disabled state entered");
             state = disabled;
             SetFanOn(false); // turn off fan motor
             Write(port_a, YELLOW, 1);
@@ -409,6 +456,7 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         }
         else     // start system
         {
+            Print("Idle state entered");
             state = idle;
             Write(port_a, GREEN, 1);
             Write(port_a, YELLOW, 0);
@@ -424,22 +472,3 @@ ISR (PCINT1_vect) // PCINT1 for PJ1
         }
     }
 }
-
-ISR(TIMER1_OVF_vect)
-{
-    *myTCCR1B &= 0xF8; // stop timer
-    *myTCNT1 =  (unsigned int) (49911);   // load count (1 min hopefully)
-    *myTCCR1B |=   0x01; // restart timer
-    if(state != disabled && state != error)
-    {
-        // lcd print humidity percent and temp val
-        lcd.setCursor(0, 1);
-        lcd.print("Humidity: " + dht.humidity + "%");
-        lcd.setCursor(1,1);
-        lcd.print("Temperature: " + dht.temperature + " C")
-    }
-
-}
-//
-//
-//
