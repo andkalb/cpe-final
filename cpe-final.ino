@@ -5,7 +5,7 @@
 
 #include <LiquidCrystal.h>
 #include <Stepper.h>
-#include <dht11.h>
+#include "DHT.h"
 #include <Wire.h>
 #include "RTClib.h" // the adafruit library
 
@@ -74,8 +74,8 @@ const int stepsPerRevolution = 2048;
 Stepper stepper = Stepper(stepsPerRevolution, 2, 4, 3, 5); // numbers are digital ports
 bool ventClockwise = false;
 
-dht11 dht; // Temp Sensor
-unsigned int waterLevel; // variable for water sensor
+volatile DHT dht(11, DHT11); // Temp Sensor
+volatile unsigned int waterLevel; // variable for water sensor
 
 RTC_DS1307 rtc;
 DateTime now;
@@ -88,19 +88,19 @@ enum State
     running
 };
 
-State state = disabled;
+volatile State state = disabled;
 
 
 
-bool fanOn = false;
-bool startButtonReleased = false;
+volatile bool fanOn = false;
+volatile bool startButtonReleased = false;
 
-unsigned int temp = 0;
-unsigned int humidity = 0;
+volatile unsigned int temp = 0;
+volatile unsigned int humidity = 0;
 
 
-unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
-unsigned int temperatureThreshold = 25;  // " " " " " " " " " " " " Celsius
+volatile const unsigned int waterThreshold = 250;       // DETERMINE THESE CONSTANTS
+volatile const unsigned int temperatureThreshold = 25;  // " " " " " " " " " " " " Celsius
 //
 //
 //
@@ -160,9 +160,8 @@ void loop()
 {
     now = rtc.now();
     waterLevel = ADCRead(1); // ADC signal wire is in A1
-    dht.read(11); // pb5, digital port 11
-    temp = dht.temperature();
-    humidity = dht.humidity();
+    temp = dht.readTemperature();
+    humidity = dht.readHumidity();
  
     if (state == idle)
     {
