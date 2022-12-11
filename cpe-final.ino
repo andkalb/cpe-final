@@ -287,7 +287,7 @@ void HandleVentButtons()
 {
     bool ph4 = Read(port_h, 4);
     bool ph3 = Read(port_h, 3);
-    if(pb7)
+    if(ph4)
     {
         // adjust vent 1 way (stepper motor)
         stepper.step(1);
@@ -297,7 +297,7 @@ void HandleVentButtons()
         }
         ventClockwise = true;
     }
-    else if (pb6)
+    else if (ph3)
     {
         // adjust vent the other way (stepper motor)
         stepper.step(-1);
